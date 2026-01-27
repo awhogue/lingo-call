@@ -1,0 +1,158 @@
+"""Chatterbox TTS implementation for text-to-speech."""
+
+import logging
+from pathlib import Path
+from typing import Any
+
+import numpy as np
+
+from lingo_call.config import TTSConfig
+from lingo_call.tts.base import TTSProvider
+
+logger = logging.getLogger(__name__)
+
+
+class ChatterboxTTS(TTSProvider):
+    """Text-to-speech using Resemble AI's Chatterbox.
+
+    Supports voice cloning and 23 languages:
+    ar, da, de, el, en, es, fi, fr, he, hi, it, ja, ko, ms, nl, no, pl, pt, ru, sv, sw, tr, zh
+    """
+
+    def __init__(self, config: TTSConfig, language: str) -> None:
+        """Initialize the Chatterbox TTS provider.
+
+        Args:
+            config: TTS configuration
+            language: Language code (e.g., 'es' for Spanish)
+        """
+        self.config = config
+        self._language = language
+        self._voice_file = config.voice_file
+        self._model: Any = None
+        self._device: str | None = None
+
+    def _load_model(self) -> None:
+        """Load the TTS model lazily."""
+        if self._model is not None:
+            return
+
+        try:
+            if self.config.model_type == "multilingual":
+                from chatterbox.tts import ChatterboxMultilingualTTS as TTS
+            else:
+                from chatterbox.tts import ChatterboxTTS as TTS
+        except ImportError as e:
+            raise ImportError(
+                "chatterbox-tts is not installed. Install with: pip install chatterbox-tts"
+            ) from e
+
+        device = self.config.device
+
+        try:
+            logger.info(f"Loading Chatterbox {self.config.model_type} on {device}...")
+            self._model = TTS.from_pretrained(device=device)
+            self._device = device
+            logger.info(f"Successfully loaded TTS model on {device}")
+        except Exception as e:
+            if self.config.fallback_to_cpu and device != "cpu":
+                logger.warning(f"Failed to load on {device}: {e}. Falling back to CPU...")
+                self._model = TTS.from_pretrained(device="cpu")
+                self._device = "cpu"
+                logger.info("Successfully loaded TTS model on CPU")
+            else:
+                raise
+
+    def synthesize(self, text: str) -> tuple[np.ndarray, int]:
+        """Synthesize speech from text.
+
+        Args:
+            text: Text to synthesize
+
+        Returns:
+            Tuple of (audio_array, sample_rate)
+        """
+        self._load_model()
+
+        if not text.strip():
+            # Return empty audio for empty text
+            return np.array([], dtype=np.float32), self.config.sample_rate
+
+        try:
+            # Build generation kwargs
+            kwargs: dict[str, Any] = {
+                "text": text,
+                "cfg_weight": self.config.cfg_weight,
+                "exaggeration": self.config.exaggeration,
+            }
+
+            # Add voice cloning reference if available
+            if self._voice_file and Path(self._voice_file).exists():
+                kwargs["audio_prompt_path"] = self._voice_file
+            elif self._voice_file:
+                logger.warning(f"Voice file not found: {self._voice_file}")
+
+            # Add language for multilingual model
+            if self.config.model_type == "multilingual":
+                kwargs["lang"] = self._language
+
+            # Generate audio
+            wav = self._model.generate(**kwargs)
+
+            # Convert to numpy array
+            if hasattr(wav, "numpy"):
+                # PyTorch tensor
+                audio = wav.squeeze().cpu().numpy()
+            elif hasattr(wav, "cpu"):
+                audio = wav.squeeze().cpu().numpy()
+            else:
+                audio = np.asarray(wav).squeeze()
+
+            audio = audio.astype(np.float32)
+
+            # Normalize if needed
+            if np.abs(audio).max() > 1.0:
+                audio = audio / np.abs(audio).max()
+
+            return audio, self.config.sample_rate
+
+        except Exception as e:
+            logger.error(f"TTS synthesis failed: {e}")
+            raise
+
+    def set_language(self, language: str) -> None:
+        """Set the language for synthesis.
+
+        Args:
+            language: Language code (e.g., 'es')
+        """
+        self._language = language
+        logger.info(f"TTS language set to: {language}")
+
+    def set_voice(self, voice_file: str) -> None:
+        """Set the reference voice for cloning.
+
+        Args:
+            voice_file: Path to reference audio file
+        """
+        if voice_file and not Path(voice_file).exists():
+            logger.warning(f"Voice file not found: {voice_file}")
+        self._voice_file = voice_file
+        logger.info(f"TTS voice file set to: {voice_file}")
+
+    @property
+    def is_loaded(self) -> bool:
+        """Check if the model is loaded and ready."""
+        return self._model is not None
+
+    @property
+    def device(self) -> str | None:
+        """Get the device the model is running on."""
+        return self._device
+
+    def close(self) -> None:
+        """Clean up resources."""
+        if self._model is not None:
+            self._model = None
+            self._device = None
+            logger.info("TTS model unloaded")
