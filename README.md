@@ -18,10 +18,29 @@ Arabic, Chinese, Danish, Dutch, English, Finnish, French, German, Greek, Hebrew,
 
 ## Installation
 
-```bash
-# Install base package (audio recording/playback only)
-pip install -e .
+### Python Setup (pyenv recommended)
 
+```bash
+# Install pyenv if you don't have it
+brew install pyenv
+
+# Add to your shell (add these to ~/.zshrc or ~/.bashrc)
+export PYENV_ROOT="$HOME/.pyenv"
+export PATH="$PYENV_ROOT/bin:$PATH"
+eval "$(pyenv init -)"
+
+# Restart shell, then install Python 3.12
+pyenv install 3.12.8
+pyenv local 3.12.8
+
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate
+```
+
+### Package Installation
+
+```bash
 # Install with all ML components
 pip install -e ".[full]"
 
