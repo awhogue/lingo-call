@@ -33,7 +33,7 @@ pip install -e ".[tts]"   # chatterbox-tts
 
 ### Requirements
 
-- **Python 3.10-3.13** (Python 3.14 not yet supported due to dependency constraints)
+- **Python 3.10-3.12** (Python 3.13+ not yet supported due to numpy constraints in chatterbox-tts)
 - HuggingFace account with access to gated models (e.g., Llama)
 - macOS with Apple Silicon (MPS) or NVIDIA GPU (CUDA) recommended
 
