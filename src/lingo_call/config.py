@@ -77,25 +77,22 @@ class STTConfig:
 class LLMConfig:
     """Configuration for LLM."""
 
-    # Path to GGUF model file
-    model_path: str = ""
+    # HuggingFace model name or path
+    model_name: str = "meta-llama/Llama-3.2-3B-Instruct"
 
-    # Model family for chat template
-    model_family: Literal["llama", "qwen"] = "llama"
+    # Device for inference: "auto", "mps", "cuda", or "cpu"
+    device: str = "auto"
 
-    # Context window size
-    n_ctx: int = 4096
-
-    # Number of layers to offload to GPU (-1 = all)
-    n_gpu_layers: int = -1
+    # Whether to use 4-bit quantization (reduces memory usage)
+    use_4bit: bool = True
 
     # Generation parameters
     max_tokens: int = 512
     temperature: float = 0.7
     top_p: float = 0.9
 
-    # Number of threads for CPU inference
-    n_threads: int = 4
+    # Whether to trust remote code (required for some models)
+    trust_remote_code: bool = False
 
 
 @dataclass

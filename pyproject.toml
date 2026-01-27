@@ -37,12 +37,20 @@ dependencies = [
 full = [
     "omnilingual-asr",
     "chatterbox-tts",
-    "llama-cpp-python",
+    "transformers>=4.40.0",
+    "torch",
+    "accelerate",
+    "bitsandbytes",
 ]
 # Individual components
 stt = ["omnilingual-asr"]
 tts = ["chatterbox-tts"]
-llm = ["llama-cpp-python"]
+llm = [
+    "transformers>=4.40.0",
+    "torch",
+    "accelerate",
+    "bitsandbytes",
+]
 # Development tools
 dev = [
     "pytest",

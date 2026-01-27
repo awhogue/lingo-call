@@ -27,6 +27,9 @@ ENV/
 env/
 .venv/
 
+# Python version managers
+.python-version
+
 # IDE
 .idea/
 .vscode/

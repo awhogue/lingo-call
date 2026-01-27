@@ -12,7 +12,7 @@ from lingo_call.audio.recorder import AudioRecorder
 from lingo_call.config import AppConfig
 from lingo_call.conversation import ConversationManager
 from lingo_call.llm.base import LLMProvider
-from lingo_call.llm.llama_cpp import LlamaCppLLM
+from lingo_call.llm.transformers_llm import TransformersLLM
 from lingo_call.stt.base import STTProvider
 from lingo_call.stt.omnilingual import OmnilingualSTT
 from lingo_call.tts.base import TTSProvider
@@ -47,7 +47,7 @@ class ConversationPipeline:
 
         # Initialize providers
         self.stt = stt or OmnilingualSTT(config.stt, config.stt_language)
-        self.llm = llm or LlamaCppLLM(config.llm)
+        self.llm = llm or TransformersLLM(config.llm)
         self.tts = tts or ChatterboxTTS(config.tts, config.tts_language)
 
         # Initialize audio components
@@ -141,7 +141,7 @@ class ConversationPipeline:
         print(f"Lingo-Call - Voice Conversation in {self.config.display_language}")
         print(f"{'='*50}")
         print(f"STT Model: {self.config.stt.model_card}")
-        print(f"LLM Model: {self.config.llm.model_path}")
+        print(f"LLM Model: {self.config.llm.model_name}")
         print(f"TTS Model: {self.config.tts.model_type}")
         print(f"{'='*50}")
         print("Press Ctrl+C to exit\n")

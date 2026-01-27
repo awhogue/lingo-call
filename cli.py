@@ -4,7 +4,6 @@
 import argparse
 import logging
 import sys
-from pathlib import Path
 
 from lingo_call.config import (
     AppConfig,
@@ -44,20 +43,23 @@ def create_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Basic usage with English
-  python cli.py --llm-model ./models/llama-3.1-8b-q4.gguf
+  # Basic usage with default model (Llama-3.2-3B)
+  python cli.py
+
+  # Use a different HuggingFace model
+  python cli.py --llm-model Qwen/Qwen2.5-3B-Instruct
 
   # Spanish conversation with voice cloning
-  python cli.py --language es --voice speaker.wav --llm-model ./models/llama.gguf
+  python cli.py --language es --voice speaker.wav
 
   # List supported languages
   python cli.py --list-languages
 
   # Test all components
-  python cli.py --test --llm-model ./models/llama.gguf
+  python cli.py --test
 
   # Use VAD mode instead of push-to-talk
-  python cli.py --mode vad --llm-model ./models/llama.gguf
+  python cli.py --mode vad
 """,
     )
 
@@ -102,33 +104,31 @@ Examples:
     llm_group.add_argument(
         "--llm-model",
         type=str,
-        required=False,
-        help="Path to GGUF model file (required for conversation)",
+        default="meta-llama/Llama-3.2-3B-Instruct",
+        help="HuggingFace model name (default: meta-llama/Llama-3.2-3B-Instruct)",
     )
     llm_group.add_argument(
-        "--llm-family",
+        "--llm-device",
         type=str,
-        default="llama",
-        choices=["llama", "qwen"],
-        help="Model family for chat template (default: llama)",
+        default="auto",
+        choices=["auto", "mps", "cuda", "cpu"],
+        help="Device for LLM inference (default: auto)",
     )
     llm_group.add_argument(
-        "--llm-ctx",
-        type=int,
-        default=4096,
-        help="Context window size (default: 4096)",
-    )
-    llm_group.add_argument(
-        "--llm-gpu-layers",
-        type=int,
-        default=-1,
-        help="Number of layers to offload to GPU (-1 = all, default: -1)",
+        "--no-4bit",
+        action="store_true",
+        help="Disable 4-bit quantization (uses more memory)",
     )
     llm_group.add_argument(
         "--temperature",
         type=float,
         default=0.7,
         help="LLM temperature (default: 0.7)",
+    )
+    llm_group.add_argument(
+        "--trust-remote-code",
+        action="store_true",
+        help="Trust remote code from HuggingFace (required for some models)",
     )
 
     # TTS options
@@ -236,12 +236,11 @@ def build_config(args: argparse.Namespace) -> AppConfig:
     config.stt.device = args.stt_device
 
     # LLM config
-    if args.llm_model:
-        config.llm.model_path = args.llm_model
-    config.llm.model_family = args.llm_family
-    config.llm.n_ctx = args.llm_ctx
-    config.llm.n_gpu_layers = args.llm_gpu_layers
+    config.llm.model_name = args.llm_model
+    config.llm.device = args.llm_device
+    config.llm.use_4bit = not args.no_4bit
     config.llm.temperature = args.temperature
+    config.llm.trust_remote_code = args.trust_remote_code
 
     # TTS config
     config.tts.model_type = args.tts_model
@@ -286,16 +285,6 @@ def main() -> int:
         config.to_yaml(args.save_config)
         print(f"Configuration saved to {args.save_config}")
         return 0
-
-    # Check LLM model is provided for conversation/test
-    if not config.llm.model_path:
-        print("Error: --llm-model is required", file=sys.stderr)
-        print("Provide a path to a GGUF model file.", file=sys.stderr)
-        return 1
-
-    if not Path(config.llm.model_path).exists():
-        print(f"Error: LLM model not found: {config.llm.model_path}", file=sys.stderr)
-        return 1
 
     # Create pipeline
     print(f"Initializing Lingo-Call for {config.display_language}...")
