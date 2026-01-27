@@ -19,12 +19,21 @@ Arabic, Chinese, Danish, Dutch, English, Finnish, French, German, Greek, Hebrew,
 ## Installation
 
 ```bash
+# Install base package (audio recording/playback only)
 pip install -e .
+
+# Install with all ML components
+pip install -e ".[full]"
+
+# Or install individual components
+pip install -e ".[stt]"   # omnilingual-asr
+pip install -e ".[llm]"   # llama-cpp-python
+pip install -e ".[tts]"   # chatterbox-tts
 ```
 
 ### Requirements
 
-- Python 3.10+
+- **Python 3.10-3.13** (Python 3.14 not yet supported due to dependency constraints)
 - A GGUF model file (Llama 3.x or Qwen 2.x recommended)
 - macOS with Apple Silicon (MPS) or NVIDIA GPU (CUDA) recommended
 

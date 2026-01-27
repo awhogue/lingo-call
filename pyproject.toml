@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "Multilingual voice conversation app with STT, LLM, and TTS"
 readme = "README.md"
 license = {text = "MIT"}
-requires-python = ">=3.10"
+requires-python = ">=3.10,<3.14"  # chatterbox-tts requires numpy<1.26 which is incompatible with 3.14
 authors = [
     {name = "Lingo-Call Contributors"}
 ]
@@ -22,13 +22,9 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
-    "Programming Language :: Python :: 3.14",
 ]
 
 dependencies = [
-    "omnilingual-asr",
-    "chatterbox-tts",
-    "llama-cpp-python",
     "sounddevice",
     "soundfile",
     "numpy",
@@ -37,6 +33,17 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# Full stack with all ML models
+full = [
+    "omnilingual-asr",
+    "chatterbox-tts",
+    "llama-cpp-python",
+]
+# Individual components
+stt = ["omnilingual-asr"]
+tts = ["chatterbox-tts"]
+llm = ["llama-cpp-python"]
+# Development tools
 dev = [
     "pytest",
     "pytest-asyncio",
