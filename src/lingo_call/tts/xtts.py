@@ -52,15 +52,31 @@ class XTTSv2TTS(TTSProvider):
 
         try:
             import torch
+            from torch.serialization import add_safe_globals
         except ImportError as e:
             raise ImportError("torch is not installed") from e
 
         try:
             from TTS.api import TTS
+            # Allowlist XTTS / shared config classes for PyTorch 2.6+ safe loading
+            from TTS.tts.configs.xtts_config import XttsConfig
+            from TTS.tts.models.xtts import XttsAudioConfig, XttsArgs
+            from TTS.config.shared_configs import BaseDatasetConfig
         except ImportError as e:
             raise ImportError(
                 "Coqui TTS is not installed. Install with: pip install TTS"
             ) from e
+
+        # Register XTTS-related config classes as safe globals so torch.load(weights_only=True)
+        # can unpickle XTTS checkpoints without raising WeightsUnpickler errors.
+        try:
+            add_safe_globals([XttsConfig, XttsAudioConfig, XttsArgs, BaseDatasetConfig])
+        except Exception:
+            # Best-effort; if this fails, loading may still succeed depending on torch version
+            logger.debug(
+                "Failed to register XTTS safe globals with torch.serialization",
+                exc_info=True,
+            )
 
         device = self.config.device
 

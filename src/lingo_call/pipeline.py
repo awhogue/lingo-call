@@ -3,6 +3,7 @@
 import logging
 import signal
 import sys
+from pathlib import Path
 from typing import Callable
 
 import numpy as np
@@ -126,7 +127,10 @@ class ConversationPipeline:
 
         # Step 3: Text-to-speech
         logger.info("Synthesizing speech...")
-        audio_response, sample_rate = self.tts.synthesize(response)
+        audio_response, self._last_sample_rate = self.tts.synthesize(response)
+
+        # Optionally save raw TTS audio for debugging
+        self._save_tts_debug(audio_response, self._last_sample_rate)
 
         return audio_response
 
@@ -172,6 +176,9 @@ class ConversationPipeline:
         # Text-to-speech
         logger.info("Synthesizing speech...")
         audio_response, self._last_sample_rate = self.tts.synthesize(response)
+
+        # Optionally save raw TTS audio for debugging
+        self._save_tts_debug(audio_response, self._last_sample_rate)
 
         return audio_response
 
@@ -233,8 +240,11 @@ class ConversationPipeline:
                 )
 
                 if len(response_audio) > 0:
-                    # Play the response
-                    self.player.play(response_audio, self.config.tts.sample_rate)
+                    # Play the response using the actual TTS sample rate if available
+                    sample_rate = getattr(
+                        self, "_last_sample_rate", self.config.tts.sample_rate
+                    )
+                    self.player.play(response_audio, sample_rate)
 
             except KeyboardInterrupt:
                 break
@@ -306,6 +316,26 @@ class ConversationPipeline:
 
         print("Conversation ended.")
         print(f"Total turns: {self.conversation.turn_count}")
+
+    def _save_tts_debug(self, audio: np.ndarray, sample_rate: int) -> None:
+        """Save raw TTS audio to disk for debugging if configured."""
+        debug_dir = getattr(self.config.tts, "debug_save_dir", "")
+
+        if not debug_dir or len(audio) == 0:
+            return
+
+        try:
+            out_dir = Path(debug_dir)
+            out_dir.mkdir(parents=True, exist_ok=True)
+
+            # Use turn count to generate a simple, monotonic filename
+            turn = getattr(self.conversation, "turn_count", 0)
+            file_path = out_dir / f"tts_turn_{turn:04d}.wav"
+
+            self.player.save(audio, sample_rate, str(file_path))
+            logger.info(f"Saved TTS debug audio to {file_path}")
+        except Exception as e:
+            logger.warning(f"Failed to save TTS debug audio: {e}")
 
     def test_components(self) -> dict[str, bool]:
         """Test each component of the pipeline.

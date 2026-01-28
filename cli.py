@@ -169,6 +169,13 @@ Examples:
         help="TTS exaggeration (default: 0.5)",
     )
 
+    tts_group.add_argument(
+        "--tts-save-dir",
+        type=str,
+        default="",
+        help="Directory to save raw TTS audio outputs for debugging",
+    )
+
     # Audio/Input options
     audio_group = parser.add_argument_group("Audio/Input")
     audio_group.add_argument(
@@ -256,6 +263,7 @@ def build_config(args: argparse.Namespace) -> AppConfig:
     config.tts.voice_file = args.voice
     config.tts.cfg_weight = args.cfg_weight
     config.tts.exaggeration = args.exaggeration
+    config.tts.debug_save_dir = args.tts_save_dir
 
     # Audio config
     config.audio.push_to_talk_key = args.ptt_key

@@ -118,6 +118,9 @@ class TTSConfig:
     # Audio output sample rate
     sample_rate: int = 24000
 
+    # Optional directory to save raw TTS audio for debugging
+    debug_save_dir: str = ""
+
 
 @dataclass
 class AudioConfig:
