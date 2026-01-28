@@ -130,6 +130,14 @@ class ChatterboxTTS(TTSProvider):
             # Generate audio
             wav = self._model.generate(**kwargs)
 
+            # Get sample rate from model if available
+            if hasattr(self._model, "sr"):
+                sample_rate = self._model.sr
+            elif hasattr(self._model, "sample_rate"):
+                sample_rate = self._model.sample_rate
+            else:
+                sample_rate = self.config.sample_rate
+
             # Convert to numpy array
             if hasattr(wav, "numpy"):
                 # PyTorch tensor
@@ -145,7 +153,7 @@ class ChatterboxTTS(TTSProvider):
             if np.abs(audio).max() > 1.0:
                 audio = audio / np.abs(audio).max()
 
-            return audio, self.config.sample_rate
+            return audio, sample_rate
 
         except Exception as e:
             logger.error(f"TTS synthesis failed: {e}")

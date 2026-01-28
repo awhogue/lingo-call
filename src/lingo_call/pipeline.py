@@ -165,7 +165,7 @@ class ConversationPipeline:
 
         # Text-to-speech
         logger.info("Synthesizing speech...")
-        audio_response, sample_rate = self.tts.synthesize(response)
+        audio_response, self._last_sample_rate = self.tts.synthesize(response)
 
         return audio_response
 
@@ -289,8 +289,8 @@ class ConversationPipeline:
                 )
 
                 if len(response_audio) > 0:
-                    # Play the response
-                    self.player.play(response_audio, self.config.tts.sample_rate)
+                    sample_rate = getattr(self, "_last_sample_rate", self.config.tts.sample_rate)
+                    self.player.play(response_audio, sample_rate)
 
             except EOFError:
                 break
