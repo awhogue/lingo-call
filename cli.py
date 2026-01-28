@@ -46,6 +46,9 @@ Examples:
   # Basic usage with default model (Llama-3.2-3B)
   python cli.py
 
+  # Text mode (type input, skip STT)
+  python cli.py --text-mode
+
   # Use a different HuggingFace model
   python cli.py --llm-model Qwen/Qwen2.5-3B-Instruct
 
@@ -166,8 +169,13 @@ Examples:
         help="TTS exaggeration (default: 0.5)",
     )
 
-    # Audio options
-    audio_group = parser.add_argument_group("Audio")
+    # Audio/Input options
+    audio_group = parser.add_argument_group("Audio/Input")
+    audio_group.add_argument(
+        "--text-mode",
+        action="store_true",
+        help="Text input mode: type instead of speak (skips STT)",
+    )
     audio_group.add_argument(
         "--mode",
         type=str,
@@ -287,8 +295,10 @@ def main() -> int:
         return 0
 
     # Create pipeline
-    print(f"Initializing Lingo-Call for {config.display_language}...")
-    pipeline = ConversationPipeline(config)
+    text_mode = args.text_mode
+    mode_str = "text mode" if text_mode else "voice mode"
+    print(f"Initializing Lingo-Call for {config.display_language} ({mode_str})...")
+    pipeline = ConversationPipeline(config, text_mode=text_mode)
 
     try:
         # Handle --test
@@ -297,23 +307,34 @@ def main() -> int:
             results = pipeline.test_components()
             print("\nResults:")
             for component, success in results.items():
-                status = "PASS" if success else "FAIL"
+                if success is None:
+                    status = "SKIPPED"
+                elif success:
+                    status = "PASS"
+                else:
+                    status = "FAIL"
                 print(f"  {component}: {status}")
-            return 0 if all(results.values()) else 1
+            # Only fail if any component explicitly failed (not skipped)
+            failed = any(v is False for v in results.values())
+            return 1 if failed else 0
 
-        # Define callbacks for transcription and response display
-        def on_transcription(text: str) -> None:
-            print(f"\nYou: {text}")
-
+        # Define callback for response display
         def on_response(text: str) -> None:
             print(f"\nAssistant: {text}")
 
-        # Start interactive conversation
-        pipeline.start_interactive(
-            mode=args.mode,
-            on_transcription=on_transcription,
-            on_response=on_response,
-        )
+        if text_mode:
+            # Text input mode
+            pipeline.start_text_interactive(on_response=on_response)
+        else:
+            # Voice input mode
+            def on_transcription(text: str) -> None:
+                print(f"\nYou: {text}")
+
+            pipeline.start_interactive(
+                mode=args.mode,
+                on_transcription=on_transcription,
+                on_response=on_response,
+            )
 
     except KeyboardInterrupt:
         print("\nInterrupted by user")

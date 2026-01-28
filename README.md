@@ -67,6 +67,9 @@ python cli.py --list-languages
 # Basic conversation with default model (Llama-3.2-3B-Instruct)
 python cli.py
 
+# Text mode: type input instead of speaking (skips STT)
+python cli.py --text-mode
+
 # Use a different HuggingFace model
 python cli.py --llm-model Qwen/Qwen2.5-3B-Instruct
 
