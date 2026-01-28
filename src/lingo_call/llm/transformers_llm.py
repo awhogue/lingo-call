@@ -18,19 +18,31 @@ class TransformersLLM(LLMProvider):
     - Mistral, Phi, and other compatible models
     """
 
-    def __init__(self, config: LLMConfig) -> None:
+    def __init__(self, config: LLMConfig, lazy: bool = True) -> None:
         """Initialize the transformers provider.
 
         Args:
             config: LLM configuration
+            lazy: If False, load model immediately during init
         """
         self.config = config
         self._model: Any = None
         self._tokenizer: Any = None
         self._device: str | None = None
 
+        if not lazy:
+            self.load()
+
+    def load(self) -> None:
+        """Load the LLM model.
+
+        Can be called explicitly to load before first use.
+        Safe to call multiple times (will only load once).
+        """
+        self._load_model()
+
     def _load_model(self) -> None:
-        """Load the LLM model lazily."""
+        """Load the LLM model (internal)."""
         if self._model is not None:
             return
 

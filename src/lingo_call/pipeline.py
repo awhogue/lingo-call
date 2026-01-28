@@ -56,7 +56,8 @@ class ConversationPipeline:
             self.stt = stt or OmnilingualSTT(config.stt, config.stt_language)
             self.recorder = AudioRecorder(config.audio)
 
-        self.llm = llm or TransformersLLM(config.llm)
+        # Initialize LLM eagerly (load model now, not on first use)
+        self.llm = llm or TransformersLLM(config.llm, lazy=False)
         self.tts = tts or ChatterboxTTS(config.tts, config.tts_language)
 
         # Initialize audio player (needed for TTS output)
