@@ -38,8 +38,13 @@ class ChatterboxTTS(TTSProvider):
             return
 
         try:
+            import torch
+        except ImportError as e:
+            raise ImportError("torch is not installed") from e
+
+        try:
             if self.config.model_type == "multilingual":
-                from chatterbox.tts import ChatterboxMultilingualTTS as TTS
+                from chatterbox.mtl_tts import ChatterboxMultilingualTTS as TTS
             else:
                 from chatterbox.tts import ChatterboxTTS as TTS
         except ImportError as e:
@@ -49,7 +54,22 @@ class ChatterboxTTS(TTSProvider):
 
         device = self.config.device
 
+        # Determine the actual device to use
+        if device == "mps" and not torch.backends.mps.is_available():
+            device = "cpu"
+        elif device == "cuda" and not torch.cuda.is_available():
+            device = "cpu"
+
+        # Patch torch.load to handle CUDA tensors on non-CUDA machines
+        original_torch_load = torch.load
+
+        def patched_load(*args, **kwargs):
+            if "map_location" not in kwargs:
+                kwargs["map_location"] = device
+            return original_torch_load(*args, **kwargs)
+
         try:
+            torch.load = patched_load
             logger.info(f"Loading Chatterbox {self.config.model_type} on {device}...")
             self._model = TTS.from_pretrained(device=device)
             self._device = device
@@ -57,11 +77,22 @@ class ChatterboxTTS(TTSProvider):
         except Exception as e:
             if self.config.fallback_to_cpu and device != "cpu":
                 logger.warning(f"Failed to load on {device}: {e}. Falling back to CPU...")
-                self._model = TTS.from_pretrained(device="cpu")
-                self._device = "cpu"
-                logger.info("Successfully loaded TTS model on CPU")
+                try:
+                    # Update map_location for CPU fallback
+                    def cpu_load(*args, **kwargs):
+                        kwargs["map_location"] = "cpu"
+                        return original_torch_load(*args, **kwargs)
+
+                    torch.load = cpu_load
+                    self._model = TTS.from_pretrained(device="cpu")
+                    self._device = "cpu"
+                    logger.info("Successfully loaded TTS model on CPU")
+                finally:
+                    torch.load = original_torch_load
             else:
                 raise
+        finally:
+            torch.load = original_torch_load
 
     def synthesize(self, text: str) -> tuple[np.ndarray, int]:
         """Synthesize speech from text.
