@@ -29,9 +29,9 @@ export PYENV_ROOT="$HOME/.pyenv"
 export PATH="$PYENV_ROOT/bin:$PATH"
 eval "$(pyenv init -)"
 
-# Restart shell, then install Python 3.12
-pyenv install 3.12.8
-pyenv local 3.12.8
+# Restart shell, then install Python 3.11 (best compatibility)
+pyenv install 3.11.11
+pyenv local 3.11.11
 
 # Create virtual environment
 python -m venv venv
@@ -41,18 +41,20 @@ source venv/bin/activate
 ### Package Installation
 
 ```bash
-# Install with all ML components
-pip install -e ".[full]"
+# Install build dependencies first
+pip install --upgrade pip setuptools wheel numpy
 
-# Or install individual components
-pip install -e ".[stt]"   # omnilingual-asr
-pip install -e ".[llm]"   # transformers + torch
-pip install -e ".[tts]"   # chatterbox-tts
+# Install TTS (has tricky dependencies)
+pip install --no-build-isolation chatterbox-tts
+
+# Install remaining components
+pip install -e ".[llm,stt]"
+pip install -e .
 ```
 
 ### Requirements
 
-- **Python 3.10-3.12** (Python 3.13+ not yet supported due to numpy constraints in chatterbox-tts)
+- **Python 3.11** recommended (3.10-3.11 supported; 3.12+ has dependency issues with chatterbox-tts)
 - HuggingFace account with access to gated models (e.g., Llama)
 - macOS with Apple Silicon (MPS) or NVIDIA GPU (CUDA) recommended
 
