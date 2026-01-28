@@ -125,7 +125,7 @@ class ChatterboxTTS(TTSProvider):
 
             # Add language for multilingual model
             if self.config.model_type == "multilingual":
-                kwargs["lang"] = self._language
+                kwargs["language_id"] = self._language
 
             # Generate audio
             wav = self._model.generate(**kwargs)
