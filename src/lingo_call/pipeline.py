@@ -17,6 +17,7 @@ from lingo_call.stt.base import STTProvider
 from lingo_call.stt.omnilingual import OmnilingualSTT
 from lingo_call.tts.base import TTSProvider
 from lingo_call.tts.chatterbox import ChatterboxTTS
+from lingo_call.tts.xtts import XTTSv2TTS
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +59,12 @@ class ConversationPipeline:
 
         # Initialize LLM eagerly (load model now, not on first use)
         self.llm = llm or TransformersLLM(config.llm, lazy=False)
-        self.tts = tts or ChatterboxTTS(config.tts, config.tts_language)
+        if tts is not None:
+            self.tts = tts
+        elif config.tts.model_type == "xtts":
+            self.tts = XTTSv2TTS(config.tts, config.tts_language)
+        else:
+            self.tts = ChatterboxTTS(config.tts, config.tts_language)
 
         # Initialize audio player (needed for TTS output)
         self.player = AudioPlayer()

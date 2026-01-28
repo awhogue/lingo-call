@@ -99,8 +99,8 @@ class LLMConfig:
 class TTSConfig:
     """Configuration for text-to-speech."""
 
-    # Model type: "turbo" (English only) or "multilingual"
-    model_type: Literal["turbo", "multilingual"] = "multilingual"
+    # Model type: "turbo" (English only), "multilingual" (Chatterbox), or "xtts" (Coqui XTTS-v2)
+    model_type: Literal["turbo", "multilingual", "xtts"] = "multilingual"
 
     # Path to reference audio file for voice cloning
     voice_file: str = ""

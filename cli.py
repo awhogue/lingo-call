@@ -146,8 +146,8 @@ Examples:
         "--tts-model",
         type=str,
         default="multilingual",
-        choices=["turbo", "multilingual"],
-        help="TTS model type (default: multilingual)",
+        choices=["turbo", "multilingual", "xtts"],
+        help="TTS model: turbo, multilingual (Chatterbox), or xtts (Coqui XTTS-v2)",
     )
     tts_group.add_argument(
         "--tts-device",
