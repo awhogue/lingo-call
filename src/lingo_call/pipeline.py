@@ -253,12 +253,7 @@ class ConversationPipeline:
         """
         self._running = True
 
-        # Set up signal handler for graceful exit
-        def signal_handler(sig, frame):
-            print("\nExiting...")
-            self._running = False
-
-        signal.signal(signal.SIGINT, signal_handler)
+        # No signal handler needed - input() raises KeyboardInterrupt on Ctrl+C
 
         print(f"\n{'='*50}")
         print(f"Lingo-Call - Text Conversation in {self.config.display_language}")
@@ -293,15 +288,17 @@ class ConversationPipeline:
                     self.player.play(response_audio, sample_rate)
 
             except EOFError:
+                print()
                 break
             except KeyboardInterrupt:
+                print("\nExiting...")
                 break
             except Exception as e:
                 logger.error(f"Error in conversation turn: {e}")
                 print(f"Error: {e}")
                 continue
 
-        print("\nConversation ended.")
+        print("Conversation ended.")
         print(f"Total turns: {self.conversation.turn_count}")
 
     def test_components(self) -> dict[str, bool]:
